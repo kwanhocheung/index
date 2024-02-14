@@ -9,11 +9,11 @@ class Queries:
             database=Constants.DATABASE,
         )
         self.cursor = self.db.cursor()
-    def insert_tuple_of_lists(self, data):
+    def insert_tuple(self, data):
         insert_query = f"INSERT INTO tokens (term_id,document_name,frequency) VALUES (%s,%s,%s)"
         self.cursor.execute(insert_query, tuple(data))
         self.db.commit()
-    def query(self,term_id,term):
+    def query(self, term_id, term):
         self.cursor.execute("select count(url) from tokens NATURAL JOIN documents where term_id = %s", (term_id,))
         result = self.cursor.fetchone()
         with open("query.txt", 'a', encoding='utf-8') as f:

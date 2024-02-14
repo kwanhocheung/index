@@ -5,7 +5,7 @@ from nltk.stem import WordNetLemmatizer
 from queries import Queries
 
 class content:
-    def __init__(self,root_dir,queries):
+    def __init__(self, root_dir, queries):
         self.queries = queries
         self.root_dir = root_dir
         self.hash_term = {}
@@ -29,7 +29,7 @@ class content:
                         print(f"Error processing file {file_path}: {e}")
 
 
-    def get_token(self,content):
+    def get_token(self, content):
         token = []
         each_token = ''
         for each_char in content:
@@ -43,7 +43,7 @@ class content:
             token.append(each_token)
         return token
 
-    def token_doc(self,AllToken,file_path):
+    def token_doc(self, AllToken, file_path):
         doc_path = file_path.split(os.path.sep)[-2:]
         doc_name = "/".join(doc_path)
 
@@ -54,18 +54,18 @@ class content:
             token_index[0] = self.hash_term[token]
             token_index[1] = doc_name
             token_index[2] = AllToken.count(token)
-            self.queries.insert_tuple_of_lists(token_index)
+            self.queries.insert_tuple(token_index)
             while token in AllToken:
                 AllToken.remove(token)
 
-    def hash(self,AllToken):
+    def hash(self, AllToken):
         for token in AllToken:
             if token not in self.hash_term:
                 self.hash_term[token] = self.init
                 self.init += 1
     def query(self,term):
         term_id = self.hash_term
-        self.queries.query(term_id,term)
+        self.queries.query(term_id, term)
 
 
 
