@@ -63,9 +63,9 @@ class content:
             if token not in self.hash_term:
                 self.hash_term[token] = self.init
                 self.init += 1
-    def sort_terms(self):
-        sorted_tuple = sorted(self.token_data, key=lambda tuple: tuple[0])
-        self.token_data = sorted_tuple
+    def query(self,term):
+        term_id = self.hash_term
+        self.queries.query(term_id,term)
 
 
 
