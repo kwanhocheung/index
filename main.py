@@ -1,11 +1,13 @@
-from html_content import content
+from html_content import Indexer
 import sys
 from queries import Queries
 
+
 if __name__ == "__main__":
     query = Queries()
-    Content = content(sys.argv[1],query)
-    Content.get_html_content()
+
+    indexer = Indexer(sys.argv[1], query)
+    indexer.get_html_content()
 
 
 

@@ -1,16 +1,32 @@
 import mysql.connector
 from constants import Constants
-import json
+from datetime import datetime
+
+
 class Queries:
     def __init__(self):
+        # defaults - localhost:3306
         self.db = mysql.connector.connect(
             user=Constants.USER,
-            password=Constants.PASSWORD,
-            database=Constants.DATABASE,
+            password=Constants.PASSWORD
         )
         self.cursor = self.db.cursor()
-    def insert_tuple_of_lists(self, tuple):
-        insert_query = f"INSERT INTO tokens (term_id,document_name,frequency) VALUES (%s,%s,%s)"
-        self.cursor.execute(insert_query, tuple)
+
+    def create_postings(self):
+        self.cursor.execute("DROP DATABASE IF EXISTS inverted_index")
+        self.cursor.execute("CREATE DATABASE inverted_index")
+        self.cursor.execute("USE inverted_index")
+        self.cursor.execute("CREATE TABLE postings (" +
+                            "term_id INT NOT NULL," +
+                            "document_name VARCHAR(10) NOT NULL," +
+                            "frequency INT NOT NULL," +
+                            "PRIMARY KEY (term_id, document_name))")
+
+    def insert_postings(self, posting):
+        insert_query = f"INSERT INTO postings (term_id,document_name,frequency) VALUES (%s,%s,%s)"
+        self.cursor.execute(insert_query, posting)
         self.db.commit()
-        print("inserted\n")
+
+        now = datetime.now()
+        time = now.strftime("%H:%M:%S")
+        print(time + " - Inserted: " + str(posting))
