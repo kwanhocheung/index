@@ -23,10 +23,16 @@ class Indexer:
         self.wordnet_lemmatizer = WordNetLemmatizer()
 
     def get_html_content(self):
+        count = -1
         for path, directories, files in os.walk(self.root_dir):
             for file in files:
                 if not file.endswith('.json') and not file.endswith('.tsv'):
                     file_path = os.path.join(path, file)
+
+                    # if file_path.startswith("WEBPAGES_RAW\\0\\") or file_path.startswith("WEBPAGES_RAW\\1"):
+                    now = datetime.now()
+                    time = now.strftime("%H:%M:%S")
+                    print(time + " - Handling: " + str(file_path))
 
                     try:
                         with open(file_path, 'rb') as f:
@@ -36,13 +42,32 @@ class Indexer:
 
                             tokens = self.get_tokens(text)
                             self.hash(tokens.keys())
-                            self.token_doc(tokens, file_path)
+                            self.add_postings(tokens, file_path)
 
                             #with open("tokensc.txt", 'w', encoding='utf-8') as ww:
                             #    ww.write(str(self.term_dict))
-
                     except Exception as e:
                         print(f"Error processing file {file_path}: {e}")
+                    now = datetime.now()
+                    time = now.strftime("%H:%M:%S")
+                    print(time + " - Finishing: " + str(file_path))
+
+            # After 25 files have been processed, transfer to database and reset postings
+            count += 1
+            if count == 25:
+                count = 0
+                self.queries.insert_postings(self.term_dict)
+
+        # Transfer all remaining postings after completing all files
+        if count != 0:
+            now = datetime.now()
+            stime = now.strftime("%H:%M:%S")
+            self.queries.insert_postings(self.term_dict)
+            now = datetime.now()
+            time = now.strftime("%H:%M:%S")
+            print(" - Start query time: " + stime)
+            print(" - End query time: " + time)
+
         with open("tokens.txt", 'a', encoding='utf-8') as f:
             f.write(str(self.term_dict))
         now = datetime.now()
@@ -63,7 +88,7 @@ class Indexer:
 
         # Lemmatize each token and check stop words
         for token in all_tokens:
-            if self.isEnglish(token):
+            if self.is_ascii(token):
                 ltoken = self.wordnet_lemmatizer.lemmatize(token)
                 if ltoken not in self.stop_words:
                     if ltoken in tokens:
@@ -73,35 +98,29 @@ class Indexer:
 
         return tokens
 
-    def token_doc(self, tokens, file_path):
+    def add_postings(self, tokens, file_path):
         doc_path = file_path.split(os.path.sep)[-2:]
         doc_name = "/".join(doc_path)
 
         for token, freq in tokens.items():
-            # Initialize postings
-            token_index = [0, 0, 0]
-
-            # Assign values: (term_id, document name, tf-idf)
-            token_index[0] = self.term_dict[token]
-            token_index[1] = doc_name
-            token_index[2] = freq
-
-            self.queries.insert_postings(token_index)
-            #while token in tokens:
-            #    tokens.remove(token)
+            # Adds a tuple of (term_id, document_name, tf-idf)
+            # to the postings list of each token found in the files
+            self.term_dict[token][1].append((self.term_dict[token][0], doc_name, freq))
 
     def hash(self, tokens):
-        # Adds new term with new unique termID into term_dict
+        # Adds new term with a tuple of a new unique termID and its postings list
+        # { term : (term_id, []) }
+        #                     ^ postings list -- postings will be added here
         for token in tokens:
             if token not in self.term_dict:
-                self.term_dict[token] = self.term_id
+                self.term_dict[token] = (self.term_id, []) #self.term_id
                 self.term_id += 1
 
     def sort_terms(self):
         sorted_tuple = sorted(self.token_data, key=lambda tuple: tuple[0])
         self.token_data = sorted_tuple
 
-    def isEnglish(self, s):
+    def is_ascii(self, s):
         try:
             s.encode('ascii')
         except UnicodeEncodeError:

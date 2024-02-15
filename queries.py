@@ -24,9 +24,14 @@ class Queries:
 
     def insert_postings(self, posting):
         insert_query = f"INSERT INTO postings (term_id,document_name,frequency) VALUES (%s,%s,%s)"
-        self.cursor.execute(insert_query, posting)
+        posted = []
+        for _, post in posting.values():
+            posted.extend(post)
+            post.clear()
+
+        self.cursor.executemany(insert_query, posted)
         self.db.commit()
 
-        now = datetime.now()
-        time = now.strftime("%H:%M:%S")
-        print(time + " - Inserted: " + str(posting))
+        #now = datetime.now()
+        #time = now.strftime("%H:%M:%S")
+        #print(time + " - Inserted: " + str(posting))
