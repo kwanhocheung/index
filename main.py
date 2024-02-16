@@ -2,6 +2,7 @@ from html_content import Indexer
 import sys
 from queries import Queries
 
+
 if __name__ == "__main__":
     queries = Queries()
     indexer = Indexer(sys.argv[1],queries)
