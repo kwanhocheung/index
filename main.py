@@ -1,14 +1,14 @@
-from html_content import content
+from html_content import Indexer
 import sys
 from queries import Queries
 
 if __name__ == "__main__":
-    query = Queries()
-    Content = content(sys.argv[1],query)
-    Content.get_html_content()
+    queries = Queries()
+    indexer = Indexer(sys.argv[1],queries)
+    indexer.get_html_content()
     word_list = ["informatics","mondego","irvine"]
     for word in word_list:
-        Content.query(word)
+        indexer.query(word)
 
 
 
