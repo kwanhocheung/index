@@ -13,8 +13,14 @@ class Indexer:
         self.start_time = time
         self.queries = queries
         self.root_dir = root_dir
+        # term: term_id, [posting]
         self.term_dict = dict()
+        # doc_name: total terms
+        self.doc_TotalTerms = dict()
+        # term_id: total_freq
+        self.term_totalfreq = dict()
         self.term_id = 0
+        self.total_doc = 0
         self.alnum_tokenizer = RegexpTokenizer(r"[^\W_]+")
         self.stop_words = set(stopwords.words('english'))
         self.wordnet_lemmatizer = WordNetLemmatizer()
@@ -35,10 +41,12 @@ class Indexer:
                             url_data = f.read()
                             tree = html.fromstring(url_data)
                             text = tree.text_content().lower()
+                            doc_path = file_path.split(os.path.sep)[-2:]
+                            doc_name = "/".join(doc_path)
 
-                            tokens = self.get_tokens(text)
+                            tokens = self.get_tokens(text,doc_name)
                             self.hash(tokens.keys())
-                            self.add_postings(tokens, file_path)
+                            self.add_postings(tokens, doc_name)
 
                     except Exception as e:
                         print(f"Error processing file {file_path}: {e}")
@@ -46,9 +54,10 @@ class Indexer:
                     time = now.strftime("%H:%M:%S")
                     print(time + " - Finishing: " + str(file_path))
 
-                    # After 25 files have been processed, transfer to database and reset postings
+                    # After 20 files have been processed, transfer to database and reset postings
+            self.total_doc += 1
             count += 1
-            if count == 25:
+            if count == 20:
                 count = 0
                 self.queries.insert_postings(self.term_dict)
 
@@ -56,7 +65,10 @@ class Indexer:
         if count != 0:
             now = datetime.now()
             stime = now.strftime("%H:%M:%S")
+
             self.queries.insert_postings(self.term_dict)
+            self.queries.insert_idf(self.term_totalfreq, self.total_doc)
+
             now = datetime.now()
             time = now.strftime("%H:%M:%S")
             print(" - Start query time: " + stime)
@@ -64,11 +76,13 @@ class Indexer:
 
         with open("tokens.txt", 'a', encoding='utf-8') as f:
             f.write(str(self.term_dict))
+        with open("doc_TotalTerms.txt",'a',encoding='utf-8') as f:
+            f.write(str(self.doc_TotalTerms))
         now = datetime.now()
         time = now.strftime("%H:%M:%S")
         print("Start time: " + self.start_time + "\nEnd time: " + time)
 
-    def get_tokens(self, text):
+    def get_tokens(self, text, doc_name):
         # \w --> alphanumeric characters including underscore
         # \W is opposite of \w
         # [^\W_] is looking for characters that are NOT \W and underscore
@@ -85,6 +99,12 @@ class Indexer:
             if self.is_ascii(token):
                 ltoken = self.wordnet_lemmatizer.lemmatize(token)
                 if ltoken not in self.stop_words:
+                    # count total tokens in a doc
+                    if doc_name in self.doc_TotalTerms:
+                        self.doc_TotalTerms[doc_name] += 1
+                    else:
+                        self.doc_TotalTerms[doc_name] = 1
+                    # count each token frequency
                     if ltoken in tokens:
                         tokens[ltoken] += 1
                     else:
@@ -92,15 +112,20 @@ class Indexer:
 
         return tokens
 
-    def add_postings(self, tokens, file_path):
-        doc_path = file_path.split(os.path.sep)[-2:]
-        doc_name = "/".join(doc_path)
+    def add_postings(self, tokens, doc_name):
 
         for token, freq in tokens.items():
-            # Adds a tuple of (term_id, document_name, tf-idf)
+            # Adds a tuple of (term_id, document_name, freq)
             # to the postings list of each token found in the files
-            self.term_dict[token][1].append((self.term_dict[token][0], doc_name, freq))
+            total_term_in_a_doc = self.doc_TotalTerms[doc_name]
+            tf = round(freq/total_term_in_a_doc, 4)
+            self.term_dict[token][1].append((self.term_dict[token][0], doc_name, freq, tf))
 
+            # self.term_dict[token][0] return the term id
+            if self.term_dict[token][0] in self.term_totalfreq:
+                self.term_totalfreq[self.term_dict[token][0]] += freq
+            else:
+                self.term_totalfreq[self.term_dict[token][0]] = freq
     def hash(self, tokens):
         # Adds new term with new unique termID into term_dict
         for token in tokens:

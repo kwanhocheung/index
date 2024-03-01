@@ -1,6 +1,7 @@
 import mysql.connector
 from constants import Constants
 from datetime import datetime
+import math
 
 
 class Queries:
@@ -14,13 +15,22 @@ class Queries:
         self.cursor = self.db.cursor()
 
     def insert_postings(self, posting):
-        insert_query = f"INSERT INTO postings (term_id,document_name,frequency) VALUES (%s,%s,%s)"
+        insert_query = f"INSERT INTO postings (term_id,document_name,frequency,tf) VALUES (%s,%s,%s,%s)"
         posted = []
         for _, post in posting.values():
             posted.extend(post)
             post.clear()
 
         self.cursor.executemany(insert_query, posted)
+        self.db.commit()
+    def insert_idf(self,term_totalfreq,total_doc):
+        insert_query = f"INSERT INTO idf (term_id,idf) VALUES (%s,%s)"
+        termID_IDF = []
+        for x, y in term_totalfreq.items():
+            idf = round(math.log(total_doc/y), 4)
+            termID_IDF.append((y, idf))
+
+        self.cursor.executemany(insert_query, termID_IDF)
         self.db.commit()
 
 
