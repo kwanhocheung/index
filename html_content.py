@@ -17,7 +17,7 @@ class Indexer:
         self.term_dict = dict()
         # doc_name: total terms
         self.doc_TotalTerms = dict()
-        # term_id: total_freq
+        # term_id: df
         self.term_totalfreq = dict()
         self.term_id = 0
         self.total_doc = 0
@@ -26,6 +26,7 @@ class Indexer:
         self.wordnet_lemmatizer = WordNetLemmatizer()
 
     def get_html_content(self):
+        self.queries.create_table()
         count = -1
         for path, directories, files in os.walk(self.root_dir):
             for file in files:
@@ -47,7 +48,7 @@ class Indexer:
                             tokens = self.get_tokens(text,doc_name)
                             self.hash(tokens.keys())
                             self.add_postings(tokens, doc_name)
-
+                            self.total_doc += 1
                     except Exception as e:
                         print(f"Error processing file {file_path}: {e}")
                     now = datetime.now()
@@ -55,7 +56,6 @@ class Indexer:
                     print(time + " - Finishing: " + str(file_path))
 
                     # After 20 files have been processed, transfer to database and reset postings
-            self.total_doc += 1
             count += 1
             if count == 20:
                 count = 0
@@ -63,16 +63,9 @@ class Indexer:
 
                 # Transfer all remaining postings after completing all files
         if count != 0:
-            now = datetime.now()
-            stime = now.strftime("%H:%M:%S")
-
             self.queries.insert_postings(self.term_dict)
             self.queries.insert_idf(self.term_totalfreq, self.total_doc)
-
-            now = datetime.now()
-            time = now.strftime("%H:%M:%S")
-            print(" - Start query time: " + stime)
-            print(" - End query time: " + time)
+            self.queries.merge_table()
 
         with open("tokens.txt", 'a', encoding='utf-8') as f:
             f.write(str(self.term_dict))
@@ -123,9 +116,10 @@ class Indexer:
 
             # self.term_dict[token][0] return the term id
             if self.term_dict[token][0] in self.term_totalfreq:
-                self.term_totalfreq[self.term_dict[token][0]] += freq
+                self.term_totalfreq[self.term_dict[token][0]] += 1
             else:
-                self.term_totalfreq[self.term_dict[token][0]] = freq
+                self.term_totalfreq[self.term_dict[token][0]] = 1
+
     def hash(self, tokens):
         # Adds new term with new unique termID into term_dict
         for token in tokens:

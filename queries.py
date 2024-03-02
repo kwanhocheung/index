@@ -26,9 +26,9 @@ class Queries:
     def insert_idf(self,term_totalfreq,total_doc):
         insert_query = f"INSERT INTO idf (term_id,idf) VALUES (%s,%s)"
         termID_IDF = []
-        for x, y in term_totalfreq.items():
-            idf = round(math.log(total_doc/y), 4)
-            termID_IDF.append((y, idf))
+        for term_id, df in term_totalfreq.items():
+            idf = round(math.log(total_doc/df), 4)
+            termID_IDF.append((term_id, idf))
 
         self.cursor.executemany(insert_query, termID_IDF)
         self.db.commit()
@@ -47,5 +47,11 @@ class Queries:
                 f.write(row[0] + "\n")
         print("retrieved: " + term + "\n")
 
-
-
+    def create_table(self):
+        self.cursor.execute("drop table if exists postings")
+        self.cursor.execute("drop table if exists idf")
+        self.cursor.execute("CREATE TABLE postings(term_id int,document_name varchar(10),frequency int,tf float4,primary key(term_id,document_name),FOREIGN KEY (document_name) references documents(document_name))")
+        self.cursor.execute("create table IDF(term_id int,idf float4)")
+    def merge_table(self):
+        self.cursor.execute("drop table if exists tf_idf")
+        self.cursor.execute("create table tf_idf as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) from postings join idf on postings.term_id=IDF.term_id")
