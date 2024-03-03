@@ -33,13 +33,20 @@ class Queries:
         self.cursor.executemany(insert_query, termID_IDF)
         self.db.commit()
 
-
-    def query_geturls(self, term_id):
+    # return urls from a word
+    def get_urls(self, term_id):
         self.cursor.execute("select url from postings NATURAL JOIN documents where term_id = %s", (term_id,))
         result = self.cursor.fetchall()
         # convert tuple of list to list
         set_of_urls_result = set(sum(result, ()))
         return set_of_urls_result
+
+    def get_tf_idf(self,term_id):
+        self.cursor.execute("select document_name, tf_idf from index_data where term_id = %s", (term_id,))
+        # result will be [(doc_name,tf_idf)........]
+        result = self.cursor.fetchall()
+        return result
+
 
     def create_table(self):
         self.cursor.execute("drop table if exists postings")
@@ -47,5 +54,5 @@ class Queries:
         self.cursor.execute("CREATE TABLE postings(term_id int,document_name varchar(10),frequency int,tf float4,primary key(term_id,document_name),FOREIGN KEY (document_name) references documents(document_name))")
         self.cursor.execute("create table IDF(term_id int,idf float4)")
     def merge_table(self):
-        self.cursor.execute("drop table if exists tf_idf")
-        self.cursor.execute("create table tf_idf as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf from postings join idf on postings.term_id=IDF.term_id")
+        self.cursor.execute("drop table if exists index_data")
+        self.cursor.execute("create table index_data as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf from postings join idf on postings.term_id=IDF.term_id")

@@ -135,7 +135,12 @@ class Indexer:
         else:
             return True
 
+    # return set of urls for a term
     def query(self, term):
+        # get term id from term_dictionary
         term_id = self.term_dict[term][0]
-        # return set of urls for a term
-        return self.queries.query_geturls(term_id)
+        return self.queries.get_urls(term_id)
+    def Query(self,term):
+        # get term id from term_dictionary
+        term_id = self.term_dict[term][0]
+        return self.queries.get_tf_idf(term_id)
