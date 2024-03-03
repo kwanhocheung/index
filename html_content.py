@@ -137,4 +137,5 @@ class Indexer:
 
     def query(self, term):
         term_id = self.term_dict[term][0]
-        self.queries.query(term_id, term)
+        # return set of urls for a term
+        return self.queries.query_geturls(term_id)

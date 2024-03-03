@@ -34,18 +34,12 @@ class Queries:
         self.db.commit()
 
 
-    def query(self, term_id, term):
-        self.cursor.execute("select count(url) from postings NATURAL JOIN documents where term_id = %s", (term_id,))
-        result = self.cursor.fetchone()
-        with open("query.txt", 'a', encoding='utf-8') as f:
-            f.write(term + "\n")
-            f.write(str(result) + " urls\n")
-        self.cursor.execute("select url from postings NATURAL JOIN documents where term_id = %s limit 20", (term_id,))
+    def query_geturls(self, term_id):
+        self.cursor.execute("select url from postings NATURAL JOIN documents where term_id = %s", (term_id,))
         result = self.cursor.fetchall()
-        with open("query.txt", 'a', encoding='utf-8') as f:
-            for row in result:
-                f.write(row[0] + "\n")
-        print("retrieved: " + term + "\n")
+        # convert tuple of list to list
+        set_of_urls_result = set(sum(result, ()))
+        return set_of_urls_result
 
     def create_table(self):
         self.cursor.execute("drop table if exists postings")
@@ -54,4 +48,4 @@ class Queries:
         self.cursor.execute("create table IDF(term_id int,idf float4)")
     def merge_table(self):
         self.cursor.execute("drop table if exists tf_idf")
-        self.cursor.execute("create table tf_idf as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) from postings join idf on postings.term_id=IDF.term_id")
+        self.cursor.execute("create table tf_idf as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf from postings join idf on postings.term_id=IDF.term_id")
