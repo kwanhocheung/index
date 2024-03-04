@@ -136,11 +136,51 @@ class Indexer:
             return True
 
     # return set of urls for a term
-    def query(self, term):
-        # get term id from term_dictionary
-        term_id = self.term_dict[term][0]
-        return self.queries.get_urls(term_id)
-    def Query(self,term):
-        # get term id from term_dictionary
-        term_id = self.term_dict[term][0]
-        return self.queries.get_tf_idf(term_id)
+    def query_get_urls(self, term):
+        urls_list = []
+        for each_word in term:
+            term_id = self.term_dict[each_word][0]
+            urls_list.append(self.queries.get_urls(term_id))
+
+        #if the term more than 1 words
+        if len(urls_list) > 1:
+            #find commom url from sets of list
+            common_urls = urls_list[0]
+            for s in urls_list[1:]:
+                common_urls = common_urls & s
+        else:
+            common_urls = urls_list[0]
+
+        return common_urls
+
+    def query_get_index(self,term):
+        index_list = []
+        for each_word in term:
+            term_id = self.term_dict[each_word][0]
+            index_list.append(self.queries.get_tf_idf(term_id))
+
+        sum_by_key = {}
+        if len(index_list) > 1:
+            # break the pair of list of list to pair of list
+            flattened = sum(index_list, [])
+            # store the documents occurrences
+            doc_occurrences = {}
+            for key, value in flattened:
+                if key in doc_occurrences:
+                    doc_occurrences[key] += 1
+                else:
+                    doc_occurrences[key] = 1
+
+            # find common documents, and sum the total tf_idf in sum_by_key dicionary
+            for key, value in flattened:
+                if doc_occurrences[key] == len(index_list):
+                    if key in sum_by_key:
+                        sum_by_key[key] += value
+                    else:
+                        sum_by_key[key] = value
+        else:
+            flattened = sum(index_list, [])
+            for key, value in flattened:
+                sum_by_key[key] = value
+
+        return sum_by_key

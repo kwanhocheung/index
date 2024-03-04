@@ -37,7 +37,7 @@ class Queries:
     def get_urls(self, term_id):
         self.cursor.execute("select url from postings NATURAL JOIN documents where term_id = %s", (term_id,))
         result = self.cursor.fetchall()
-        # convert tuple of list to list
+        # convert tuples of list to set
         set_of_urls_result = set(sum(result, ()))
         return set_of_urls_result
 
