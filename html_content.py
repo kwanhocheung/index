@@ -180,15 +180,18 @@ class Indexer:
     def query_get_score(self, term):
         result_list = []
         length = 0
-        x = [1125,8862,15,16]
-        for each_word in x:
-            #term_id = self.term_dict[each_word][0]
-            result_list.append(self.queries.get_score(each_word))
+        for each_word in term:
+            term_id = self.term_dict[each_word][0]
+            result_list.append(self.queries.get_score(term_id))
             length += 1
 
+        # break the pair of list of list to pair of list
+        flattened = sum(result_list, [])
+        # reserve more space for memory
+        del result_list
+
+        # handle the word more than 1 term
         if length > 1:
-            # break the pair of list of list to pair of list
-            flattened = sum(result_list, [])
             # store the documents occurrences.
             doc_occurrences = {}
             for each_tuple in flattened:
@@ -203,7 +206,6 @@ class Indexer:
                     # add tuple to new_result that match the occurrences. if a term has 2 words, a doc has 2 occurrence
                     new_result.append(each_tuple)
             # reserve more space for memory
-            del result_list
             del flattened
 
             sum_square_of_tf = {}
@@ -214,7 +216,7 @@ class Indexer:
                     sum_square_of_tf[each_tuple[1]] = each_tuple[2] * each_tuple[2]
             for doc, value in sum_square_of_tf.items():
                 # get the magnitude of the vector
-                sum_square_of_tf[doc] = round(value**0.5, 4)
+                sum_square_of_tf[doc] = value**0.5
 
             # store the normalized vector
             result_list = []
@@ -222,27 +224,53 @@ class Indexer:
                 x = each_tuple[0]
                 y = each_tuple[1]
                 z = each_tuple[2]/sum_square_of_tf[each_tuple[1]]
-                result_list.append((x, y, round(z, 4)))
+                result_list.append((x, y, z))
+
             del new_result
 
             cos_dict = {}
             length = len(result_list)
-            for i in range(length-1):
-                doc_pair = result_list[i][1]+","+result_list[i+1][1]
-                score = result_list[i][2]*result_list[i+1][2]
-                if doc_pair in cos_dict:
-                    cos_dict[doc_pair] += score
-                else:
+            for i in range(0, length-1):
+                for j in range(i+1, length):
+                    if result_list[i][0] == result_list[j][0]:
+                        doc_pair = "cos("+result_list[i][1]+","+result_list[j][1]+")"
+                        score = round(result_list[i][2] * result_list[j][2], 4)
+                        if doc_pair in cos_dict:
+                            cos_dict[doc_pair] += score
+                        else:
+                            cos_dict[doc_pair] = score
+
+            # return a list of tuple, only top 20
+            return sorted(cos_dict.items(), key=lambda x: x[1], reverse=True)
+
+        # handle the word only has 1 term
+        else:
+            sum_square_of_tf = {}
+            for each_tuple in flattened:
+                sum_square_of_tf[each_tuple[1]] = each_tuple[2] * each_tuple[2]
+
+            for doc, value in sum_square_of_tf.items():
+                # get the magnitude of the vector
+                sum_square_of_tf[doc] = value**0.5
+
+            new_result = []
+            for each_tuple in flattened:
+                x = each_tuple[0]
+                y = each_tuple[1]
+                z = each_tuple[2] / sum_square_of_tf[each_tuple[1]]
+                new_result.append((x, y, z))
+            del flattened
+
+            cos_dict = {}
+            length = len(new_result)
+            for i in range(0, length - 1):
+                for j in range(i+1, length):
+                    doc_pair = "cos("+new_result[i][1] + "," + new_result[j][1]+")"
+                    score = round(new_result[i][2] * new_result[j][2], 4)
                     cos_dict[doc_pair] = score
 
-
-
-
-
-
-
-
-
+            # return a list of tuple, only top 20
+            return sorted(cos_dict.items(), key=lambda x: x[1], reverse=True)
 
 
 
