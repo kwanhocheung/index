@@ -47,6 +47,11 @@ class Queries:
         result = self.cursor.fetchall()
         return result
 
+    def get_score(self,term_id):
+        self.cursor.execute("select term_id, document_name, tf from index_data where term_id = %s", (term_id,))
+        # result will be [(doc_name,tf)........]
+        result = self.cursor.fetchall()
+        return result
 
     def create_table(self):
         self.cursor.execute("drop table if exists postings")

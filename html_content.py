@@ -4,6 +4,7 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from datetime import datetime
+import math
 
 
 class Indexer:
@@ -15,8 +16,6 @@ class Indexer:
         self.root_dir = root_dir
         # term: term_id, [posting]
         self.term_dict = dict()
-        # doc_name: total terms
-        self.doc_TotalTerms = dict()
         # term_id: df
         self.term_totalfreq = dict()
         self.term_id = 0
@@ -69,8 +68,6 @@ class Indexer:
 
         with open("tokens.txt", 'a', encoding='utf-8') as f:
             f.write(str(self.term_dict))
-        with open("doc_TotalTerms.txt",'a',encoding='utf-8') as f:
-            f.write(str(self.doc_TotalTerms))
         now = datetime.now()
         time = now.strftime("%H:%M:%S")
         print("Start time: " + self.start_time + "\nEnd time: " + time)
@@ -92,11 +89,6 @@ class Indexer:
             if self.is_ascii(token):
                 ltoken = self.wordnet_lemmatizer.lemmatize(token)
                 if ltoken not in self.stop_words:
-                    # count total tokens in a doc
-                    if doc_name in self.doc_TotalTerms:
-                        self.doc_TotalTerms[doc_name] += 1
-                    else:
-                        self.doc_TotalTerms[doc_name] = 1
                     # count each token frequency
                     if ltoken in tokens:
                         tokens[ltoken] += 1
@@ -108,10 +100,9 @@ class Indexer:
     def add_postings(self, tokens, doc_name):
 
         for token, freq in tokens.items():
-            # Adds a tuple of (term_id, document_name, freq)
+            # Adds a tuple of (term_id, document_name, freq, tf)
             # to the postings list of each token found in the files
-            total_term_in_a_doc = self.doc_TotalTerms[doc_name]
-            tf = round(freq/total_term_in_a_doc, 4)
+            tf = 1 + round(math.log(freq), 4)
             self.term_dict[token][1].append((self.term_dict[token][0], doc_name, freq, tf))
 
             # self.term_dict[token][0] return the term id
@@ -142,15 +133,15 @@ class Indexer:
             term_id = self.term_dict[each_word][0]
             urls_list.append(self.queries.get_urls(term_id))
 
-        #if the term more than 1 words
+        # if the term more than 1 words
         if len(urls_list) > 1:
-            #find commom url from sets of list
+            # find commom url from sets of list
             common_urls = urls_list[0]
             for s in urls_list[1:]:
                 common_urls = common_urls & s
         else:
             common_urls = urls_list[0]
-
+        del urls_list
         return common_urls
 
     def query_get_index(self,term):
@@ -171,7 +162,7 @@ class Indexer:
                 else:
                     doc_occurrences[key] = 1
 
-            # find common documents, and sum the total tf_idf in sum_by_key dicionary
+            # find common documents, and sum the total tf_idf in sum_by_key dictionary
             for key, value in flattened:
                 if doc_occurrences[key] == len(index_list):
                     if key in sum_by_key:
@@ -183,4 +174,76 @@ class Indexer:
             for key, value in flattened:
                 sum_by_key[key] = value
 
+        del index_list
         return sum_by_key
+
+    def query_get_score(self, term):
+        result_list = []
+        length = 0
+        x = [1125,8862,15,16]
+        for each_word in x:
+            #term_id = self.term_dict[each_word][0]
+            result_list.append(self.queries.get_score(each_word))
+            length += 1
+
+        if length > 1:
+            # break the pair of list of list to pair of list
+            flattened = sum(result_list, [])
+            # store the documents occurrences.
+            doc_occurrences = {}
+            for each_tuple in flattened:
+                if each_tuple[1] in doc_occurrences:
+                    doc_occurrences[each_tuple[1]] += 1
+                else:
+                    doc_occurrences[each_tuple[1]] = 1
+
+            new_result = []
+            for each_tuple in flattened:
+                if doc_occurrences[each_tuple[1]] == length:
+                    # add tuple to new_result that match the occurrences. if a term has 2 words, a doc has 2 occurrence
+                    new_result.append(each_tuple)
+            # reserve more space for memory
+            del result_list
+            del flattened
+
+            sum_square_of_tf = {}
+            for each_tuple in new_result:
+                if each_tuple[1] in sum_square_of_tf:
+                    sum_square_of_tf[each_tuple[1]] += each_tuple[2] * each_tuple[2]
+                else:
+                    sum_square_of_tf[each_tuple[1]] = each_tuple[2] * each_tuple[2]
+            for doc, value in sum_square_of_tf.items():
+                # get the magnitude of the vector
+                sum_square_of_tf[doc] = round(value**0.5, 4)
+
+            # store the normalized vector
+            result_list = []
+            for each_tuple in new_result:
+                x = each_tuple[0]
+                y = each_tuple[1]
+                z = each_tuple[2]/sum_square_of_tf[each_tuple[1]]
+                result_list.append((x, y, round(z, 4)))
+            del new_result
+
+            cos_dict = {}
+            length = len(result_list)
+            for i in range(length-1):
+                doc_pair = result_list[i][1]+","+result_list[i+1][1]
+                score = result_list[i][2]*result_list[i+1][2]
+                if doc_pair in cos_dict:
+                    cos_dict[doc_pair] += score
+                else:
+                    cos_dict[doc_pair] = score
+
+
+
+
+
+
+
+
+
+
+
+
+
