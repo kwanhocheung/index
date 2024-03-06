@@ -1,5 +1,5 @@
 import os
-from lxml import html
+from lxml import html, etree
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
@@ -40,11 +40,10 @@ class Indexer:
                         with open(file_path, 'rb') as f:
                             url_data = f.read()
                             tree = html.fromstring(url_data)
-                            text = tree.text_content().lower()
                             doc_path = file_path.split(os.path.sep)[-2:]
                             doc_name = "/".join(doc_path)
 
-                            tokens = self.get_tokens(text,doc_name)
+                            tokens = self.get_tokens(tree)
                             self.hash(tokens.keys())
                             self.add_postings(tokens, doc_name)
                             self.total_doc += 1
@@ -72,38 +71,38 @@ class Indexer:
         time = now.strftime("%H:%M:%S")
         print("Start time: " + self.start_time + "\nEnd time: " + time)
 
-    def get_tokens(self, text, doc_name):
+    def get_tokens(self, tree):
         # \w --> alphanumeric characters including underscore
         # \W is opposite of \w
         # [^\W_] is looking for characters that are NOT \W and underscore
         ##### alnum_tokenizer = RegexpTokenizer(r"[^\W_]+")
-
-        # Get tokens in text
-        all_tokens = self.alnum_tokenizer.tokenize(text)
-
+        weight = {"title":15,"h1":10,"h2":5,"h3":4,"h4":3,"h5":2,"h6":1,"strong":2,"b":2,"em":2,"p":7,"a":2,"div": 1,"ul":1,"ol":1,"li":1,"img":4,"span":1,}
+        #token: (freq, total_weight)
         tokens = dict()
-        #### stop_words = set(stopwords.words('english'))  # List of stop words
 
-        # Lemmatize each token and check stop words
-        for token in all_tokens:
-            if self.is_ascii(token):
-                ltoken = self.wordnet_lemmatizer.lemmatize(token)
-                if ltoken not in self.stop_words:
-                    # count each token frequency
-                    if ltoken in tokens:
-                        tokens[ltoken] += 1
-                    else:
-                        tokens[ltoken] = 1
-
+        # Iterate over all elements
+        for tag, weight in weight.items():
+            for element in tree.findall('.//{}'.format(tag)):
+                text = element.text_content().lower()
+                all_tokens = self.alnum_tokenizer.tokenize(text)
+                for token in all_tokens:
+                    if self.is_ascii(token):
+                        ltoken = self.wordnet_lemmatizer.lemmatize(token)
+                        if ltoken not in self.stop_words:
+                            if ltoken in tokens:
+                                freq, current_weight = tokens[ltoken]
+                                tokens[ltoken] = (freq + 1, current_weight + weight)
+                            else:
+                                tokens[ltoken] = (1, weight)
         return tokens
 
     def add_postings(self, tokens, doc_name):
 
-        for token, freq in tokens.items():
+        for token, freq_weight in tokens.items():
             # Adds a tuple of (term_id, document_name, freq, tf)
             # to the postings list of each token found in the files
-            tf = 1 + round(math.log(freq), 4)
-            self.term_dict[token][1].append((self.term_dict[token][0], doc_name, freq, tf))
+            tf = 1 + round(math.log(freq_weight[0]), 4)
+            self.term_dict[token][1].append((self.term_dict[token][0], doc_name, freq_weight[0], tf, freq_weight[1]))
 
             # self.term_dict[token][0] return the term id
             if self.term_dict[token][0] in self.term_totalfreq:
@@ -129,8 +128,7 @@ class Indexer:
     # return set of urls for a term
     def query_get_all_urls(self, term):
         urls_list = []
-        x = [1125,8862,15,16]
-        for each_word in x:
+        for each_word in term:
             term_id = self.term_dict[each_word][0]
             urls_list.append(self.queries.get_urls(term_id))
 

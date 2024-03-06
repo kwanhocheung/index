@@ -15,7 +15,7 @@ class Queries:
         self.cursor = self.db.cursor()
 
     def insert_postings(self, posting):
-        insert_query = f"INSERT INTO postings (term_id,document_name,frequency,tf) VALUES (%s,%s,%s,%s)"
+        insert_query = f"INSERT INTO postings (term_id,document_name,frequency,tf,weight) VALUES (%s,%s,%s,%s,%s)"
         posted = []
         for _, post in posting.values():
             posted.extend(post)
@@ -56,8 +56,8 @@ class Queries:
     def create_table(self):
         self.cursor.execute("drop table if exists postings")
         self.cursor.execute("drop table if exists idf")
-        self.cursor.execute("CREATE TABLE postings(term_id int,document_name varchar(10),frequency int,tf float4,primary key(term_id,document_name),FOREIGN KEY (document_name) references documents(document_name))")
+        self.cursor.execute("CREATE TABLE postings(term_id int, document_name varchar(10), frequency int, tf float4, weight int, primary key(term_id,document_name),FOREIGN KEY (document_name) references documents(document_name))")
         self.cursor.execute("create table IDF(term_id int,idf float4)")
     def merge_table(self):
         self.cursor.execute("drop table if exists index_data")
-        self.cursor.execute("create table index_data as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf from postings join idf on postings.term_id=IDF.term_id")
+        self.cursor.execute("create table index_data as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf, weight from postings join idf on postings.term_id=IDF.term_id")

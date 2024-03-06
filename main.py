@@ -6,11 +6,11 @@ from queries import Queries
 if __name__ == "__main__":
     queries = Queries()
     indexer = Indexer(sys.argv[1],queries)
-    #indexer.get_html_content()
+    indexer.get_html_content()
 
     term = "artificial intelligence computer science"
     tokenized_term = indexer.alnum_tokenizer.tokenize(term)
-
+    """
     index_dict = indexer.query_get_index(tokenized_term)
     with open("index.txt", 'a', encoding='utf-8') as f:
         f.write(term + "\n")
@@ -22,5 +22,5 @@ if __name__ == "__main__":
         f.write(term + "\n")
         for doc_pair, value in cos_list:
             f.write(doc_pair + " = " + str(value) + "\n")
-
+    """
 
