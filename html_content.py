@@ -127,9 +127,10 @@ class Indexer:
             return True
 
     # return set of urls for a term
-    def query_get_urls(self, term):
+    def query_get_all_urls(self, term):
         urls_list = []
-        for each_word in term:
+        x = [1125,8862,15,16]
+        for each_word in x:
             term_id = self.term_dict[each_word][0]
             urls_list.append(self.queries.get_urls(term_id))
 
@@ -146,43 +147,44 @@ class Indexer:
 
     def query_get_index(self,term):
         index_list = []
-        for each_word in term:
-            term_id = self.term_dict[each_word][0]
-            index_list.append(self.queries.get_tf_idf(term_id))
+        x = [1125, 8862, 15, 16]
+        for each_word in x:
+            #term_id = self.term_dict[each_word][0]
+            index_list.append(self.queries.get_index(each_word))
 
+        # break the tuple of list of list to tuple of list
+        flattened = sum(index_list, [])
         sum_by_key = {}
         if len(index_list) > 1:
-            # break the pair of list of list to pair of list
-            flattened = sum(index_list, [])
             # store the documents occurrences
             doc_occurrences = {}
-            for key, value in flattened:
-                if key in doc_occurrences:
-                    doc_occurrences[key] += 1
+            for each_tuple in flattened:
+                if each_tuple[0] in doc_occurrences:
+                    doc_occurrences[each_tuple[0]] += 1
                 else:
-                    doc_occurrences[key] = 1
+                    doc_occurrences[each_tuple[0]] = 1
 
             # find common documents, and sum the total tf_idf in sum_by_key dictionary
-            for key, value in flattened:
-                if doc_occurrences[key] == len(index_list):
-                    if key in sum_by_key:
-                        sum_by_key[key] += value
+            for each_tuple in flattened:
+                if doc_occurrences[each_tuple[0]] == len(index_list):
+                    if each_tuple[0] in sum_by_key:
+                        value = sum_by_key[each_tuple[0]][0]
+                        sum_by_key[each_tuple[0]] = (value + each_tuple[1], each_tuple[2])
                     else:
-                        sum_by_key[key] = value
+                        sum_by_key[each_tuple[0]] = (each_tuple[1], each_tuple[2])
         else:
-            flattened = sum(index_list, [])
-            for key, value in flattened:
-                sum_by_key[key] = value
-
+            for each_tuple in flattened:
+                sum_by_key[each_tuple[0]] = (each_tuple[1], each_tuple[2])
         del index_list
         return sum_by_key
 
     def query_get_score(self, term):
         result_list = []
+        x = [1125, 8862, 15, 16]
         length = 0
-        for each_word in term:
-            term_id = self.term_dict[each_word][0]
-            result_list.append(self.queries.get_score(term_id))
+        for each_word in x:
+            #term_id = self.term_dict[each_word][0]
+            result_list.append(self.queries.get_score(each_word))
             length += 1
 
         # break the pair of list of list to pair of list
@@ -233,7 +235,7 @@ class Indexer:
             for i in range(0, length-1):
                 for j in range(i+1, length):
                     if result_list[i][0] == result_list[j][0]:
-                        doc_pair = "cos("+result_list[i][1]+","+result_list[j][1]+")"
+                        doc_pair = result_list[i][1] + "," + result_list[j][1]
                         score = round(result_list[i][2] * result_list[j][2], 4)
                         if doc_pair in cos_dict:
                             cos_dict[doc_pair] += score
@@ -265,7 +267,7 @@ class Indexer:
             length = len(new_result)
             for i in range(0, length - 1):
                 for j in range(i+1, length):
-                    doc_pair = "cos("+new_result[i][1] + "," + new_result[j][1]+")"
+                    doc_pair = new_result[i][1] + "," + new_result[j][1]
                     score = round(new_result[i][2] * new_result[j][2], 4)
                     cos_dict[doc_pair] = score
 

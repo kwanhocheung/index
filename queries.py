@@ -33,7 +33,7 @@ class Queries:
         self.cursor.executemany(insert_query, termID_IDF)
         self.db.commit()
 
-    # return urls from a word
+    # return all url from a word
     def get_urls(self, term_id):
         self.cursor.execute("select url from postings NATURAL JOIN documents where term_id = %s", (term_id,))
         result = self.cursor.fetchall()
@@ -41,9 +41,9 @@ class Queries:
         set_of_urls_result = set(sum(result, ()))
         return set_of_urls_result
 
-    def get_tf_idf(self,term_id):
-        self.cursor.execute("select document_name, tf_idf from index_data where term_id = %s", (term_id,))
-        # result will be [(doc_name,tf_idf)........]
+    def get_index(self,term_id):
+        self.cursor.execute("select index_data.document_name, tf_idf, url from index_data join documents on index_data.document_name = documents.document_name where term_id = %s", (term_id,))
+        # result will be [(doc_name,tf_idf, url)........]
         result = self.cursor.fetchall()
         return result
 
