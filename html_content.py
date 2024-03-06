@@ -76,8 +76,8 @@ class Indexer:
         # \W is opposite of \w
         # [^\W_] is looking for characters that are NOT \W and underscore
         ##### alnum_tokenizer = RegexpTokenizer(r"[^\W_]+")
-        weight = {"title":15,"h1":10,"h2":5,"h3":4,"h4":3,"h5":2,"h6":1,"strong":2,"b":2,"em":2,"p":7,"a":2,"div": 1,"ul":1,"ol":1,"li":1,"img":4,"span":1,}
-        #token: (freq, total_weight)
+        weight = {"title":15,"h1":10,"h2":5,"h3":4,"h4":3,"h5":2,"h6":1,"strong":2,"b":2,"em":2,"p":7,"a":2,"div": 1,"ul":1,"ol":1,"li":1}
+        # token: (freq, total_weight)
         tokens = dict()
 
         # Iterate over all elements
