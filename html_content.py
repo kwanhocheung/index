@@ -145,7 +145,7 @@ class Indexer:
 
     def query_get_index(self,term):
         index_list = []
-        x = [1125, 8862, 15, 16]
+        x = [804, 3786, 11, 12]
         for each_word in x:
             #term_id = self.term_dict[each_word][0]
             index_list.append(self.queries.get_index(each_word))
@@ -174,15 +174,16 @@ class Indexer:
             for each_tuple in flattened:
                 sum_by_key[each_tuple[0]] = (each_tuple[1], each_tuple[2])
         del index_list
-        return sum_by_key
+        sorted_items = sorted(sum_by_key.items(), key=lambda item: item[1][0], reverse=True)[:20]
+        return dict(sorted_items)
 
-    def query_get_score(self, term):
+    def query_get_cos(self, term):
         result_list = []
-        x = [1125, 8862, 15, 16]
+        x = [804, 3786, 11, 12]
         length = 0
         for each_word in x:
             #term_id = self.term_dict[each_word][0]
-            result_list.append(self.queries.get_score(each_word))
+            result_list.append(self.queries.get_cos(each_word))
             length += 1
 
         # break the pair of list of list to pair of list
@@ -269,9 +270,14 @@ class Indexer:
                     score = round(new_result[i][2] * new_result[j][2], 4)
                     cos_dict[doc_pair] = score
 
-            # return a list of tuple, only top 20
+            # return a list of tuple
             return sorted(cos_dict.items(), key=lambda x: x[1], reverse=True)
 
+    def get_low_cos(self, term):
+        cos_tuple = self.query_get_cos(term)
+        # filter out the docs which similarity higher than 0.95
+        filtered_list = [item for item in cos_tuple if item[1] < 0.95]
+        return filtered_list
 
 
 

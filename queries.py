@@ -47,7 +47,7 @@ class Queries:
         result = self.cursor.fetchall()
         return result
 
-    def get_score(self,term_id):
+    def get_cos(self,term_id):
         self.cursor.execute("select term_id, document_name, tf from index_data where term_id = %s", (term_id,))
         # result will be [(doc_name,tf)........]
         result = self.cursor.fetchall()
@@ -60,4 +60,4 @@ class Queries:
         self.cursor.execute("create table IDF(term_id int,idf float4)")
     def merge_table(self):
         self.cursor.execute("drop table if exists index_data")
-        self.cursor.execute("create table index_data as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf, weight, round(((tf*idf)+(weight/10)),4) as score from postings join idf on postings.term_id=IDF.term_id")
+        self.cursor.execute("create table index_data as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf, weight, round(((tf*idf)+(weight/5)),4) as score from postings join idf on postings.term_id=IDF.term_id")
