@@ -76,7 +76,7 @@ class Indexer:
         # \W is opposite of \w
         # [^\W_] is looking for characters that are NOT \W and underscore
         ##### alnum_tokenizer = RegexpTokenizer(r"[^\W_]+")
-        weight = {"title":15,"h1":10,"h2":5,"h3":4,"h4":3,"h5":2,"h6":1,"strong":2,"b":2,"em":2,"p":7,"a":2,"div": 1,"ul":1,"ol":1,"li":1}
+        weight = {"title":15,"h1":10,"h2":5,"h3":4,"h4":3,"h5":2,"h6":1,"strong":2,"b":2,"em":2,"p":7,"a":2,"div": 1,"ul":1,"ol":1,"li":1,"span":1}
         # token: (freq, total_weight)
         tokens = dict()
 
@@ -125,30 +125,11 @@ class Indexer:
         else:
             return True
 
-    # return set of urls for a term
-    def query_get_all_urls(self, term):
-        urls_list = []
-        for each_word in term:
-            term_id = self.term_dict[each_word][0]
-            urls_list.append(self.queries.get_urls(term_id))
-
-        # if the term more than 1 words
-        if len(urls_list) > 1:
-            # find commom url from sets of list
-            common_urls = urls_list[0]
-            for s in urls_list[1:]:
-                common_urls = common_urls & s
-        else:
-            common_urls = urls_list[0]
-        del urls_list
-        return common_urls
-
     def query_get_index(self,term):
         index_list = []
-        x = [804, 3786, 11, 12]
-        for each_word in x:
-            #term_id = self.term_dict[each_word][0]
-            index_list.append(self.queries.get_index(each_word))
+        for each_word in term:
+            term_id = self.term_dict[each_word][0]
+            index_list.append(self.queries.get_index(term_id))
 
         # break the tuple of list of list to tuple of list
         flattened = sum(index_list, [])
@@ -174,19 +155,17 @@ class Indexer:
             for each_tuple in flattened:
                 sum_by_key[each_tuple[0]] = (each_tuple[1], each_tuple[2])
         del index_list
-        sorted_items = sorted(sum_by_key.items(), key=lambda item: item[1][0], reverse=True)[:20]
-        return dict(sorted_items)
+        return dict(sum_by_key)
 
-    def query_get_cos(self, term):
+    def query_get_doc_norm(self, term):
         result_list = []
-        x = [804, 3786, 11, 12]
         length = 0
-        for each_word in x:
-            #term_id = self.term_dict[each_word][0]
-            result_list.append(self.queries.get_cos(each_word))
+        for each_word in term:
+            term_id = self.term_dict[each_word][0]
+            result_list.append(self.queries.get_doc_vector(term_id))
             length += 1
 
-        # break the pair of list of list to pair of list
+        # break the tuple of list of list to tuple of list
         flattened = sum(result_list, [])
         # reserve more space for memory
         del result_list
@@ -209,75 +188,101 @@ class Indexer:
             # reserve more space for memory
             del flattened
 
-            sum_square_of_tf = {}
+            sum_square_of_weight = {}
             for each_tuple in new_result:
-                if each_tuple[1] in sum_square_of_tf:
-                    sum_square_of_tf[each_tuple[1]] += each_tuple[2] * each_tuple[2]
+                if each_tuple[1] in sum_square_of_weight:
+                    sum_square_of_weight[each_tuple[1]] += each_tuple[2] * each_tuple[2]
                 else:
-                    sum_square_of_tf[each_tuple[1]] = each_tuple[2] * each_tuple[2]
-            for doc, value in sum_square_of_tf.items():
+                    sum_square_of_weight[each_tuple[1]] = each_tuple[2] * each_tuple[2]
+            for doc, value in sum_square_of_weight.items():
                 # get the magnitude of the vector
-                sum_square_of_tf[doc] = value**0.5
+                sum_square_of_weight[doc] = value**0.5
 
             # store the normalized vector
             result_list = []
             for each_tuple in new_result:
                 x = each_tuple[0]
                 y = each_tuple[1]
-                z = each_tuple[2]/sum_square_of_tf[each_tuple[1]]
+                z = each_tuple[2]/sum_square_of_weight[each_tuple[1]]
                 result_list.append((x, y, z))
 
             del new_result
-
-            cos_dict = {}
-            length = len(result_list)
-            for i in range(0, length-1):
-                for j in range(i+1, length):
-                    if result_list[i][0] == result_list[j][0]:
-                        doc_pair = result_list[i][1] + "," + result_list[j][1]
-                        score = round(result_list[i][2] * result_list[j][2], 4)
-                        if doc_pair in cos_dict:
-                            cos_dict[doc_pair] += score
-                        else:
-                            cos_dict[doc_pair] = score
-
-            # return a list of tuple, only top 20
-            return sorted(cos_dict.items(), key=lambda x: x[1], reverse=True)
+            sorted_tuple = tuple(sorted(result_list, key=lambda x: x[2],reverse=True))
+            return sorted_tuple
 
         # handle the word only has 1 term
         else:
-            sum_square_of_tf = {}
+            sum_square_of_weight = {}
             for each_tuple in flattened:
-                sum_square_of_tf[each_tuple[1]] = each_tuple[2] * each_tuple[2]
+                sum_square_of_weight[each_tuple[1]] = each_tuple[2] * each_tuple[2]
 
-            for doc, value in sum_square_of_tf.items():
+            for doc, value in sum_square_of_weight.items():
                 # get the magnitude of the vector
-                sum_square_of_tf[doc] = value**0.5
+                sum_square_of_weight[doc] = value**0.5
 
             new_result = []
             for each_tuple in flattened:
                 x = each_tuple[0]
                 y = each_tuple[1]
-                z = each_tuple[2] / sum_square_of_tf[each_tuple[1]]
+                z = each_tuple[2] / sum_square_of_weight[each_tuple[1]]
                 new_result.append((x, y, z))
+
             del flattened
+            sorted_tuple = tuple(sorted(new_result, key=lambda x: x[2], reverse=True))
+            # #list
+            return sorted_tuple
 
-            cos_dict = {}
-            length = len(new_result)
-            for i in range(0, length - 1):
-                for j in range(i+1, length):
-                    doc_pair = new_result[i][1] + "," + new_result[j][1]
-                    score = round(new_result[i][2] * new_result[j][2], 4)
-                    cos_dict[doc_pair] = score
+    def query_get_query_norm(self, term):
+        result_list = []
+        term_dict = {}
+        for each_word in term:
+            term_id = self.term_dict[each_word][0]
+            result_list.append(self.queries.get_query_vector(term_id))
+            if each_word in term_dict:
+                term_dict[term_id] += 1
+            else:
+                term_dict[term_id] = 1
 
-            # return a list of tuple
-            return sorted(cos_dict.items(), key=lambda x: x[1], reverse=True)
+        flattened = sum(result_list, [])
+        del result_list
+        for each_tuple in flattened:
+            tf = term_dict[each_tuple[0]]
+            term_dict[each_tuple[0]] = tf*each_tuple[1]
 
-    def get_low_cos(self, term):
-        cos_tuple = self.query_get_cos(term)
-        # filter out the docs which similarity higher than 0.95
-        filtered_list = [item for item in cos_tuple if item[1] < 0.95]
-        return filtered_list
+        value = 0
+        for doc, tf_idf in term_dict.items():
+            value += tf_idf*tf_idf
+        magnitude = value**0.5
+        for doc, tf_idf in term_dict.items():
+            term_dict[doc] = round(tf_idf/magnitude, 4)
+        return term_dict
+
+    def get_cosine_similarity(self,term):
+        norm_doc = self.query_get_doc_norm(term)
+        norm_query = self.query_get_query_norm(term)
+        index_dict = self.query_get_index(term)
+
+        multi = []
+        for e in norm_doc:
+            term_id = e[0]
+            doc = e[1]
+            norm = e[2]
+            multi.append((term_id, doc, round(norm*norm_query[term_id], 4)))
+        del norm_doc
+
+        score_dict = {}
+        for e in multi:
+            if e[1] in score_dict:
+                score_dict[e[1]] += e[2]
+            else:
+                score_dict[e[1]] = e[2]
+
+        top20_score = dict(sorted(score_dict.items(), key=lambda x:x[1], reverse=True)[:20])
+        del score_dict
+
+        for key, value in top20_score.items():
+            # doc, score, weight(tf_idf+tag_weight), cosine_similarity_score
+            print(key+"  score: "+str(value)+"  weight: "+str(index_dict[key][0])+"  "+index_dict[key][1]+"\n")
 
 
 
