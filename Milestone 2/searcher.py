@@ -4,9 +4,10 @@ import json
 
 
 class Searcher:
-    def __init__(self, term_dict, queries):
+    def __init__(self, term_dict, queries, magnitudes):
         self.term_dict = term_dict
         self.queries = queries
+        self.magnitudes = magnitudes
         self.alnum_tokenizer = RegexpTokenizer(r"[^\W_]+")
 
     def start_search(self):
@@ -65,110 +66,73 @@ class Searcher:
         return dict(sum_by_key)
 
     def query_get_doc_norm(self, term):
-        result_list = []
+        term_ids = []
         length = 0
         for each_word in term:
-            # Find term_id corresponding to term and
-            # return all docs with term
-            term_id = self.term_dict[each_word][0]
-            result_list.append(self.queries.get_doc_vector(term_id))  # (term_id, doc_name, weight)
-            length += 1
+            # Get term_ids and keeps track of # of terms
+            if each_word in self.term_dict.keys():
+                term_ids.append(self.term_dict[each_word][0])
+                length += 1
 
-        # Combine elements into single list
-        flattened = sum(result_list, [])
-        del result_list
+        # Return all docs associated with terms
+        docs = self.queries.get_doc_vector(term_ids) # (term_id, doc_name, weight)
 
         # Handle queries with more the 1 term
-        if length > 1:
-            # Store the number of occurrences of doc_name
-            doc_occurrences = {}
-            for each_tuple in flattened:
-                if each_tuple[1] in doc_occurrences:
-                    doc_occurrences[each_tuple[1]] += 1
-                else:
-                    doc_occurrences[each_tuple[1]] = 1
+        #if length > 1:
+        # Store the number of occurrences of doc_name
+        doc_occurrences = {}
+        for each_tuple in docs:
+            if each_tuple[1] in doc_occurrences:
+                doc_occurrences[each_tuple[1]] += 1
+            else:
+                doc_occurrences[each_tuple[1]] = 1
 
-            new_result = []
-            for each_tuple in flattened:
-                # Add posting if the document occurs at least (length - 1) times
-                    # If length == doc_occurrences then the doc has all n = length terms in it
-                # Index Elimination: doc has to have at least n-1 terms
-                if doc_occurrences[each_tuple[1]] >= (length - 1):
-                    new_result.append(each_tuple)
-            # reserve more space for memory
-            del flattened
+        needed_docs = set()
+        new_result = []
+        for each_tuple in docs:
+            # Add posting if the document occurs at least (length - 1) times
+                # If length == doc_occurrences then the doc has all n = length terms in it
+            # Index Elimination: doc has to have at least n-1 terms
+            if doc_occurrences[each_tuple[1]] >= (length - 1):
+                new_result.append(each_tuple)
+                needed_docs.add(each_tuple[1])
+        # reserve more space for memory
+        del docs
 
-            # Calculate sum of square weights for each document
-            sum_square_of_weight = {}
-            for each_tuple in new_result:
-                if each_tuple[1] in sum_square_of_weight:
-                    # If exists, square the weight and add to total for that doc
-                    sum_square_of_weight[each_tuple[1]] += each_tuple[2] * each_tuple[2]
-                else:
-                    sum_square_of_weight[each_tuple[1]] = each_tuple[2] * each_tuple[2]
+        # Get magnitudes for needed documents
+        #magnitudes = self.queries.get_magnitudes(needed_docs)
 
-            for doc, value in sum_square_of_weight.items():
-                # Square root each sum of square weights to get magnitude of each doc
-                sum_square_of_weight[doc] = value ** 0.5
+        # Store normalized document vectors
+        result_list = []
+        for each_tuple in new_result:
+            x = each_tuple[0]   # term_id
+            y = each_tuple[1]   # doc_name
+            z = each_tuple[2] / self.magnitudes[each_tuple[1]]  # Normalized weight
+            result_list.append((x, y, z))
 
-            # Store normalized document vectors
-            result_list = []
-            for each_tuple in new_result:
-                x = each_tuple[0]   # term_id
-                y = each_tuple[1]   # doc_name
-                z = each_tuple[2] / sum_square_of_weight[each_tuple[1]] # Normalized weight
-                result_list.append((x, y, z))
-
-            del new_result
-            return result_list
-            #sorted_tuple = tuple(sorted(result_list, key=lambda x: x[2], reverse=True))
-            #return sorted_tuple
-
-        # handle the word only has 1 term
-        else:
-            sum_square_of_weight = {}
-            for each_tuple in flattened:
-                # Square the weight and add to dict for that doc
-                sum_square_of_weight[each_tuple[1]] = each_tuple[2] * each_tuple[2]
-
-            for doc, value in sum_square_of_weight.items():
-                # Square root the square weights to get magnitudes of each doc
-                sum_square_of_weight[doc] = value ** 0.5
-
-            # Store normalized document vectors
-            new_result = []
-            for each_tuple in flattened:
-                x = each_tuple[0]   # term_id
-                y = each_tuple[1]   # doc_name
-                z = each_tuple[2] / sum_square_of_weight[each_tuple[1]]  # Normalized weight
-                new_result.append((x, y, z))
-
-            del flattened
-            return new_result
-            #sorted_tuple = tuple(sorted(new_result, key=lambda x: x[2], reverse=True))
-            #return sorted_tuple
+        del new_result
+        return result_list
 
     def query_get_query_norm(self, term):
-        result_list = []
+        term_ids = []
         term_dict = {}
         for each_word in term:
-            # Find term_id corresponding to term and
-            # return idf values for each
-            term_id = self.term_dict[each_word][0]
-            result_list.append(self.queries.get_query_vector(term_id))
+            # Find term_ids
+            if each_word in self.term_dict.keys():
+                term_id = self.term_dict[each_word][0]
+                term_ids.append(term_id)
 
-            # Calculate tf for each query term; checking repeated terms
-            if each_word in term_dict:
-                term_dict[term_id] += 1
-            else:
-                term_dict[term_id] = 1
+                # Calculate tf for each query term; checking repeated terms
+                if each_word in term_dict:
+                    term_dict[term_id] += 1
+                else:
+                    term_dict[term_id] = 1
 
-        # Combine every element into a single list
-        flattened = sum(result_list, [])
-        del result_list
+        # Return idf values for each term
+        idfs = self.queries.get_query_vector(term_ids)
 
         # Calculate tf-idf weight
-        for each_tuple in flattened:
+        for each_tuple in idfs:
             tf = term_dict[each_tuple[0]]
             term_dict[each_tuple[0]] = tf * each_tuple[1]
 

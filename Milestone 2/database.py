@@ -86,3 +86,17 @@ class Database:
                             "tag_weight, round(((tf*idf)+(tag_weight/5)),4) as weight " +
                             "FROM postings join idf " +
                             "ON postings.term_id=IDF.term_id")
+
+    def build_magnitudes(self):
+        self.cursor.execute("SELECT document_name, SQRT(SUM(weight * weight)) AS mag " +
+                            "FROM index_data " +
+                            "GROUP BY document_name")
+
+        # Results as [(doc_name, mag), ...]
+        results = self.cursor.fetchall()
+
+        # Convert result into dict
+        magnitudes = dict()
+        for result in results:
+            magnitudes[result[0]] = result[1]
+        return magnitudes

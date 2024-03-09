@@ -71,6 +71,13 @@ class Indexer:
         self.queries.insert_idf(self.term_totalfreq, self.total_doc)
         # Create index_data table for better retrieval
         self.queries.merge_table()
+        # Store magnitudes of each document vector : will be used for cosine sim
+        mag = self.queries.build_magnitudes()
+        with open("magnitudes.json", "w") as outfile:
+            json.dump(mag, outfile)
+        # Save term: term_id for retrieval use
+        with open("term_termId.json", "w") as outfile:
+            json.dump(self.term_dict, outfile)
 
         # Debugging: time of total index creation
         # with open("tokens.txt", 'w', encoding='utf-8') as f:
@@ -144,8 +151,3 @@ class Indexer:
             return False
         else:
             return True
-
-    def save_terms(self):
-        # Save term: term_id for retrieval use
-        with open("term_termId.json", "w") as outfile:
-            json.dump(self.term_dict, outfile)

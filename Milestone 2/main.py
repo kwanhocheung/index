@@ -11,13 +11,17 @@ if __name__ == "__main__":
     #db = Database()
     #indexer = Indexer(sys.argv[1], db)
     #indexer.get_html_content()
-    #indexer.save_terms()
 
-    # Import json file contain dictionary of
+    # Import json file contain dictionary of term: term_id
     data = dict()
     with open("term_termId.json") as file:
         data = json.load(file)
 
+    # Import json file with dictionary of doc: magnitudes
+    magnitudes = dict()
+    with open("magnitudes.json") as file:
+        magnitudes = json.load(file)
+
     query = Queries()
-    searcher = Searcher(data, query)
+    searcher = Searcher(data, query, magnitudes)
     searcher.start_search()
