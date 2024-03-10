@@ -59,7 +59,7 @@ class Indexer:
 
             # After 20 files have been processed, transfer to database and reset postings
             count += 1
-            if count == 20:
+            if count == 10:
                 count = 0
                 self.queries.insert_postings(self.term_dict)
 
