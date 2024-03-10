@@ -280,9 +280,14 @@ class Indexer:
         top20_score = dict(sorted(score_dict.items(), key=lambda x:x[1], reverse=True)[:20])
         del score_dict
 
-        for key, value in top20_score.items():
+        """ for key, value in top20_score.items():
             # doc, score, weight(tf_idf+tag_weight), cosine_similarity_score
-            print(key+"  score: "+str(value)+"  weight: "+str(index_dict[key][0])+"  "+index_dict[key][1]+"\n")
+            print(key+"  score: "+str(value)+"  weight: "+str(index_dict[key][0])+"  "+index_dict[key][1]+"\n") """
+        
+        docname_dict = dict()
+        for key in top20_score.keys():
+            docname_dict[key] = index_dict[key][1]
+        return docname_dict
 
 
 

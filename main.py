@@ -1,6 +1,8 @@
 from html_content import Indexer
 import sys
 from queries import Queries
+from gui_interface import search_gui
+from PySide6.QtWidgets import QApplication
 
 
 if __name__ == "__main__":
@@ -12,5 +14,8 @@ if __name__ == "__main__":
     tokenized_term = indexer.alnum_tokenizer.tokenize(term)
     indexer.get_cosine_similarity(tokenized_term)
 
-
+    app = QApplication(sys.argv)
+    interface = search_gui(indexer)
+    interface.show()
+    sys.exit(app.exec())
 

@@ -2,6 +2,6 @@ class Constants:
     # change with your own mysql username and password
     USER = "root"
 
-    PASSWORD = "Kopytre1@"
+    PASSWORD = "Shadowxp92604!"
 
     DATABASE = "cs121"
