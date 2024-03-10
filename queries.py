@@ -1,7 +1,6 @@
 import mysql.connector
 from constants import Constants
 from datetime import datetime
-import math
 
 
 class Queries:
@@ -14,47 +13,66 @@ class Queries:
         )
         self.cursor = self.db.cursor()
 
-    def insert_postings(self, posting):
-        insert_query = f"INSERT INTO postings (term_id,document_name,frequency,tf,tag_weight) VALUES (%s,%s,%s,%s,%s)"
-        posted = []
-        for _, post in posting.values():
-            posted.extend(post)
-            post.clear()
+    def get_index(self, term_id):
+        self.cursor.execute("SELECT index_data.document_name, weight, url " +
+                            "FROM index_data join documents on index_data.document_name = documents.document_name " +
+                            "WHERE term_id = %s",(term_id,))
 
-        self.cursor.executemany(insert_query, posted)
-        self.db.commit()
-    def insert_idf(self,term_totalfreq,total_doc):
-        insert_query = f"INSERT INTO idf (term_id,idf) VALUES (%s,%s)"
-        termID_IDF = []
-        for term_id, df in term_totalfreq.items():
-            idf = round(math.log(total_doc/df), 4)
-            termID_IDF.append((term_id, idf))
-
-        self.cursor.executemany(insert_query, termID_IDF)
-        self.db.commit()
-
-    def get_index(self,term_id):
-        self.cursor.execute("select index_data.document_name, weight, url from index_data join documents on index_data.document_name = documents.document_name where term_id = %s", (term_id,))
-        # result will be [(doc_name,tf_idf, url)........]
+        # Result will be [(doc_name, weight, url), ...]
         result = self.cursor.fetchall()
         return result
 
-    def get_doc_vector(self,term_id):
-        self.cursor.execute("select term_id, document_name, weight from index_data where term_id = %s", (term_id,))
-        # result will be [(doc_name,tf)........]
+    def get_doc_vector(self, term_ids):
+        if len(term_ids) == 0:
+            return []
+
+        # Build query with # of term_ids needed
+        terms = ""
+        for _ in term_ids:
+            terms += "term_id = %s OR "
+
+        self.cursor.execute("SELECT term_id, document_name, weight FROM index_data WHERE " + terms[:-4], tuple(term_ids))
+
+        # Result will be [(term_id, doc_name, weight), ...]
         result = self.cursor.fetchall()
         return result
 
-    def get_query_vector(self,term_id):
-        self.cursor.execute("select term_id, idf from IDF where term_id = %s", (term_id,))
+    def get_query_vector(self, term_ids):
+        if len(term_ids) == 0:
+            return []
+
+        # Build query with # of term_ids needed
+        terms = ""
+        for _ in term_ids:
+            terms += "term_id = %s OR "
+
+        self.cursor.execute("SELECT term_id, idf FROM idf WHERE " + terms[:-4], tuple(term_ids))
         result = self.cursor.fetchall()
         return result
 
-    def create_table(self):
-        self.cursor.execute("drop table if exists postings")
-        self.cursor.execute("drop table if exists idf")
-        self.cursor.execute("CREATE TABLE postings(term_id int, document_name varchar(10), frequency int, tf float4, tag_weight int, primary key(term_id,document_name),FOREIGN KEY (document_name) references documents(document_name))")
-        self.cursor.execute("create table IDF(term_id int,idf float4)")
-    def merge_table(self):
-        self.cursor.execute("drop table if exists index_data")
-        self.cursor.execute("create table index_data as select postings.term_id, document_name, frequency, tf, idf, round((tf*idf),4) as tf_idf, tag_weight, round(((tf*idf)+(tag_weight/5)),4) as weight from postings join idf on postings.term_id=IDF.term_id")
+    """def get_magnitudes(self, docs):
+        # Build query with # of document_name needed
+        now = datetime.now()
+        start_time = now.strftime("%H:%M:%S")
+        doc = ""
+        for _ in docs:
+            doc += "document_name = %s OR "
+
+        self.cursor.execute("SELECT document_name, mag FROM magnitudes WHERE " + doc[:-4], tuple(docs))
+        results = self.cursor.fetchall()
+
+        now = datetime.now()
+        time = now.strftime("%H:%M:%S")
+        print("SQL: Start time: " + start_time + "\nSQL: End time: " + time + "\n")
+
+        now = datetime.now()
+        start_time = now.strftime("%H:%M:%S")
+
+        # Convert result into dict
+        magnitudes = dict()
+        for result in results:
+            magnitudes[result[0]] = result[1]
+        now = datetime.now()
+        time = now.strftime("%H:%M:%S")
+        print("DICT: Start time: " + start_time + "\nDICT: End time: " + time + "\n")
+        return magnitudes"""

@@ -4,4 +4,4 @@ class Constants:
 
     PASSWORD = "Kopytre1@"
 
-    DATABASE = "cs121"
+    DATABASE = "inverted_index"
