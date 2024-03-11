@@ -99,9 +99,6 @@ class Searcher:
         # reserve more space for memory
         del docs
 
-        # Get magnitudes for needed documents
-        #magnitudes = self.queries.get_magnitudes(needed_docs)
-
         # Store normalized document vectors
         result_list = []
         for each_tuple in new_result:
@@ -179,11 +176,12 @@ class Searcher:
         with open("WEBPAGES_RAW\\bookkeeping.json") as file:
             urls = json.load(file)
 
-        """for key, value in top20_score.items():
-            # doc, score, weight(tf_idf+tag_weight), cosine_similarity_score
-            print("Doc: " + key + ",  Score: " + str(value) + ",  weight: " + str(index_dict[key][0]) + ",  URL: " + index_dict[key][1] + "\n")"""
-
         # Print results
-        for key, value in top20_score.items():
+        """for key, value in top20_score.items():
             # doc, score, cosine_similarity_score
-            print("Doc: " + key + ",  Score: " + str(value) + ",  URL: " + urls[key])
+            print("Doc: " + key + ",  Score: " + str(value) + ",  URL: " + urls[key])"""
+
+        docname_dict = dict()
+        for key in top20_score.keys():
+            docname_dict[key] = urls[key]
+        return docname_dict

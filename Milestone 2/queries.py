@@ -1,6 +1,5 @@
 import mysql.connector
 from constants import Constants
-from datetime import datetime
 
 
 class Queries:
@@ -49,30 +48,3 @@ class Queries:
         self.cursor.execute("SELECT term_id, idf FROM idf WHERE " + terms[:-4], tuple(term_ids))
         result = self.cursor.fetchall()
         return result
-
-    """def get_magnitudes(self, docs):
-        # Build query with # of document_name needed
-        now = datetime.now()
-        start_time = now.strftime("%H:%M:%S")
-        doc = ""
-        for _ in docs:
-            doc += "document_name = %s OR "
-
-        self.cursor.execute("SELECT document_name, mag FROM magnitudes WHERE " + doc[:-4], tuple(docs))
-        results = self.cursor.fetchall()
-
-        now = datetime.now()
-        time = now.strftime("%H:%M:%S")
-        print("SQL: Start time: " + start_time + "\nSQL: End time: " + time + "\n")
-
-        now = datetime.now()
-        start_time = now.strftime("%H:%M:%S")
-
-        # Convert result into dict
-        magnitudes = dict()
-        for result in results:
-            magnitudes[result[0]] = result[1]
-        now = datetime.now()
-        time = now.strftime("%H:%M:%S")
-        print("DICT: Start time: " + start_time + "\nDICT: End time: " + time + "\n")
-        return magnitudes"""

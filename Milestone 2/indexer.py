@@ -59,7 +59,7 @@ class Indexer:
 
             # After 20 files have been processed, transfer to database and reset postings
             count += 1
-            if count == 20:
+            if count == 10:
                 count = 0
                 self.queries.insert_postings(self.term_dict)
 
@@ -118,6 +118,20 @@ class Indexer:
                                 tokens[ltoken] = (freq + 1, current_weight + weight)
                             else:
                                 tokens[ltoken] = (1, weight)
+
+                # handle 2 gram query
+                for i in range(len(all_tokens)-1):
+                    if self.is_ascii(all_tokens[i]) and self.is_ascii(all_tokens[i+1]):
+                        token_one = self.wordnet_lemmatizer.lemmatize(all_tokens[i])
+                        token_two = self.wordnet_lemmatizer.lemmatize(all_tokens[i+1])
+                        if token_one not in self.stop_words and token_two not in self.stop_words:
+                            two_token = token_one+" "+token_two
+                            if two_token in tokens:
+                                # Increase frequency and add weight for token
+                                freq, current_weight = tokens[two_token]
+                                tokens[two_token] = (freq + 1, current_weight + weight)
+                            else:
+                                tokens[two_token] = (1, weight)
 
         return tokens
 

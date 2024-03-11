@@ -4,6 +4,8 @@ from queries import Queries
 from database import Database
 import sys
 import json
+from gui_interface import search_gui
+from PySide6.QtWidgets import QApplication
 
 
 if __name__ == "__main__":
@@ -24,4 +26,9 @@ if __name__ == "__main__":
 
     query = Queries()
     searcher = Searcher(data, query, magnitudes)
-    searcher.start_search()
+    #searcher.start_search()
+
+    app = QApplication(sys.argv)
+    interface = search_gui(sys.argv[1], searcher)
+    interface.show()
+    sys.exit(app.exec())
