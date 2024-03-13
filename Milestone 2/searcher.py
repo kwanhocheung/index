@@ -73,6 +73,12 @@ class Searcher:
             if each_word in self.term_dict.keys():
                 term_ids.append(self.term_dict[each_word][0])
                 length += 1
+        # handle 2 gram query
+        for i in range(len(term) - 1):
+            two_word = term[i]+" "+term[i+1]
+            if two_word in self.term_dict.keys():
+                term_ids.append(self.term_dict[two_word][0])
+                length += 1
 
         # Return all docs associated with terms
         docs = self.queries.get_doc_vector(term_ids) # (term_id, doc_name, weight)
@@ -99,6 +105,9 @@ class Searcher:
         # reserve more space for memory
         del docs
 
+        # Get magnitudes for needed documents
+        #magnitudes = self.queries.get_magnitudes(needed_docs)
+
         # Store normalized document vectors
         result_list = []
         for each_tuple in new_result:
@@ -121,6 +130,19 @@ class Searcher:
 
                 # Calculate tf for each query term; checking repeated terms
                 if each_word in term_dict:
+                    term_dict[term_id] += 1
+                else:
+                    term_dict[term_id] = 1
+        # handle 2 gram query
+        for i in range(len(term) - 1):
+            two_word = term[i]+" "+term[i+1]
+            # Find term_ids
+            if two_word in self.term_dict.keys():
+                term_id = self.term_dict[two_word][0]
+                term_ids.append(term_id)
+
+                # Calculate tf for each query term; checking repeated terms
+                if two_word in term_dict:
                     term_dict[term_id] += 1
                 else:
                     term_dict[term_id] = 1

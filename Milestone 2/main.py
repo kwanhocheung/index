@@ -7,6 +7,10 @@ import json
 from gui_interface import search_gui
 from PySide6.QtWidgets import QApplication
 
+# GROUP: Project 3 Search System 51
+#   Kwan Ho Cheung      - kwanhc2
+#   Russell Hadiwidjaja - hadiwidr
+#   Brian Nguyen        - briandn9
 
 if __name__ == "__main__":
     #### UNCOMMENT TO RUN INDEXER BEFORE SEARCH
